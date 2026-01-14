@@ -26,19 +26,22 @@ pipeline {
                 }
             }
         }
-        
+  
+      
         stage('Push to Docker Hub') {
             steps {
                 echo 'Pushing Docker image to Docker Hub...'
                 script {
-                    docker.withRegistry('https://registry.hub.docker.com', DOCKER_CREDENTIALS) {
+                    // Leave URL empty for default Docker Hub
+                    docker.withRegistry('', DOCKER_CREDENTIALS) {
                         docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}").push()
                         docker.image("${DOCKER_IMAGE}:latest").push()
                     }
-                }
+	        }
             }
         }
-        
+
+
         stage('Deploy Application') {
             steps {
                 echo 'Deploying application...'
