@@ -52,7 +52,7 @@ pipeline {
                     
                     # Stop existing containers
                     docker-compose down --remove-orphans || true
-                    docker rm -f asseto-postgres || true
+                    docker rm -f asseto-web asseto-postgres || true
                     
                     # Pull latest image
                     docker pull ${DOCKER_IMAGE}:latest
