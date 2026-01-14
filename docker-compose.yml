@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: asseto-postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: asseto_db
+      POSTGRES_USER: asseto_user
+      POSTGRES_PASSWORD: asseto_pass_123
+    ports:
+      - "5433:5432"  # Different port to avoid conflict
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U asseto_user -d asseto_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    container_name: asseto-web
+    command: /app/entrypoint.sh
+    volumes:
+      - ./:/app
+      - static_volume:/app/staticfiles
+    ports:
+      - "8002:8000"
+    environment:
+      DEBUG: "0"
+      SECRET_KEY: "django-insecure-change-this-in-production"
+      DATABASE_ENGINE: "django.db.backends.postgresql"
+      DATABASE_NAME: "asseto_db"
+      DATABASE_USER: "asseto_user"
+      DATABASE_PASSWORD: "asseto_pass_123"
+      DATABASE_HOST: "db"
+      DATABASE_PORT: "5432"
+      ALLOWED_HOSTS: "localhost,127.0.0.1,asseto-web"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  postgres_data:
+  static_volume:
