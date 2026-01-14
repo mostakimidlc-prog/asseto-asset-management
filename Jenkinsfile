@@ -47,7 +47,8 @@ pipeline {
                 echo 'Deploying application...'
                 sh '''
                     # Navigate to project directory
-                    cd ~/projects/asseto-asset-management
+                    echo "Current workspace: $WORKSPACE"
+                    cd $WORKSPACE
                     
                     # Stop existing containers
                     docker-compose down || true
