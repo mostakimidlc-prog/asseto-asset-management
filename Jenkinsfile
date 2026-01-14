@@ -51,7 +51,8 @@ pipeline {
                     cd $WORKSPACE
                     
                     # Stop existing containers
-                    docker-compose down || true
+                    docker-compose down --remove-orphans || true
+                    docker rm -f asseto-postgres || true
                     
                     # Pull latest image
                     docker pull ${DOCKER_IMAGE}:latest
