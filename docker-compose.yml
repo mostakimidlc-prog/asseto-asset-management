@@ -17,19 +17,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   web:
-    image: mostakimidlc/asseto-asset-management:latest  # ← Use image from Docker Hub
+    image: mostakimidlc/asseto-asset-management:latest
     container_name: asseto-web
-    command: /app/entrypoint.sh
-    volumes:
-      - static_volume:/app/staticfiles  # ← Only mount staticfiles
-      - media_volume:/app/media          # ← Add media volume
     ports:
       - "8002:8000"
     environment:
-      DEBUG: "1"
-      SECRET_KEY: "django-insecure-change-this-in-production"
+      DEBUG: "0"
+      SECRET_KEY: "django-insecure-production-key-change-me"
       DATABASE_ENGINE: "django.db.backends.postgresql"
       DATABASE_NAME: "asseto_db"
       DATABASE_USER: "asseto_user"
@@ -44,5 +41,3 @@ services:
 
 volumes:
   postgres_data:
-  static_volume:
-  media_volume:

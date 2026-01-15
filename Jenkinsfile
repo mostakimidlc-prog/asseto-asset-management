@@ -41,7 +41,6 @@ pipeline {
             }
         }
 
-
         stage('Deploy Application') {
             steps {
                 echo 'Deploying application...'
@@ -49,23 +48,40 @@ pipeline {
                     # Navigate to project directory
                     echo "Current workspace: $WORKSPACE"
                     cd $WORKSPACE
-                    
+            
                     # Stop existing containers
                     docker-compose down --remove-orphans || true
                     docker rm -f asseto-web asseto-postgres || true
-                    
+            
                     # Pull latest image
                     docker pull ${DOCKER_IMAGE}:latest
-                    
+            
                     # Start containers with latest image
                     docker-compose up -d
-                    
-                    # Wait for application to start
-                    sleep 10
-                    
-                    # Check application health
-                    curl -f http://localhost:8002/ || exit 1
-                '''
+            
+                    # Wait longer for application to start
+                    echo "Waiting for application to start..."
+                    sleep 30
+            
+                    # Check if containers are running
+                    docker ps | grep asseto-web
+                    docker ps | grep asseto-postgres
+            
+                    # Check application health with retries
+                    for i in {1..10}; do
+                        if curl -f http://localhost:8002/ > /dev/null 2>&1; then
+                            echo "Application is healthy!"
+                            exit 0
+                        fi
+                        echo "Attempt $i failed, waiting..."
+                        sleep 5
+                    done
+            
+                    # If we get here, health check failed
+                    echo "Health check failed after 10 attempts"
+                    docker logs asseto-web --tail=100
+                    exit 1
+                 '''
             }
         }
         
