@@ -17,15 +17,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
 
   web:
-    image: mostakimidlc/asseto-asset-management:latest
+    image: mostakimidlc/asseto-asset-management:latest  # ← Use image from Docker Hub
     container_name: asseto-web
     command: /app/entrypoint.sh
     volumes:
-      - static_volume:/app/staticfiles
-      - media_volume:/app/media
+      - static_volume:/app/staticfiles  # ← Only mount staticfiles
+      - media_volume:/app/media          # ← Add media volume
     ports:
       - "8002:8000"
     environment:
@@ -38,7 +37,6 @@ services:
       DATABASE_HOST: "db"
       DATABASE_PORT: "5432"
       ALLOWED_HOSTS: "localhost,127.0.0.1,asseto-web,10.0.3.2"
-      DJANGO_SETTINGS_MODULE: "AssetManagement.settings"
     depends_on:
       db:
         condition: service_healthy
