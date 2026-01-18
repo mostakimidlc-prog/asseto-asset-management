@@ -49,6 +49,7 @@ pipeline {
                         
                         # Copy docker-compose configuration
                         echo "Copying docker-compose file..."
+                        rm -f ${PROD_DIR}/docker-compose.yml || true
                         cp docker-compose.prod.yml ${PROD_DIR}/docker-compose.yml
                         
                         # Copy environment file if it exists
@@ -63,7 +64,15 @@ pipeline {
                         cd ${PROD_DIR}
                         
                         echo "Stopping existing containers..."
-                        docker-compose down || true
+                        docker-compose down -v || true
+                        
+                        echo "Cleaning up Docker resources..."
+                        # Stop all running containers
+                        docker ps -q | xargs -r docker stop || true
+                        # Remove all stopped containers
+                        docker ps -aq | xargs -r docker rm || true
+                        # Remove unused networks
+                        docker network prune -f || true
                         
                         echo "Pulling latest images..."
                         docker-compose pull
