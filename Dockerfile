@@ -1,11 +1,8 @@
-# Dockerfile
 FROM python:3.11-slim
 
-# Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Set work directory
 WORKDIR /app
 
 # Install system dependencies
@@ -29,18 +26,16 @@ RUN pip install --upgrade pip && \
 # Copy project files
 COPY . /app/
 
-# Create directory for static files
-RUN mkdir -p /app/staticfiles
+# Create staticfiles directory
+RUN mkdir -p /app/staticfiles /app/media
 
 # Collect static files
-RUN python manage.py collectstatic --noinput || true
+RUN python manage.py collectstatic --noinput
 
-# Create entrypoint script
+# Copy and set entrypoint
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
-# Expose port
 EXPOSE 8000
 
-# Run entrypoint script
 ENTRYPOINT ["/app/entrypoint.sh"]

@@ -41,47 +41,84 @@ pipeline {
             }
         }
 
-        stage('Deploy Application') {
+        stage('Deploy to Production') {
             steps {
-                echo 'Deploying application...'
+                echo 'Deploying to production environment...'
                 sh '''
-                    # Navigate to project directory
-                    echo "Current workspace: $WORKSPACE"
-                    cd $WORKSPACE
-            
-                    # Stop existing containers
-                    docker-compose down --remove-orphans || true
-                    docker rm -f asseto-web asseto-postgres || true
-            
+                    PROD_DIR="/opt/asseto-production"
+                    
+                    # Ensure production directory exists
+                    sudo mkdir -p ${PROD_DIR}/{secrets,backups,logs}
+                    sudo chown -R jenkins:jenkins ${PROD_DIR}
+                    sudo chmod 700 ${PROD_DIR}/secrets
+                    
+                    # Copy production docker-compose to production directory
+                    cp ${WORKSPACE}/docker-compose.prod.yml ${PROD_DIR}/docker-compose.yml
+                    
+                    # Verify secrets exist (fail if missing)
+                    if [ ! -f "${PROD_DIR}/secrets/django.env" ]; then
+                        echo "✗ Error: django.env not found!"
+                        echo "Please create secrets files first. See documentation."
+                        exit 1
+                    fi
+                    
+                    if [ ! -f "${PROD_DIR}/secrets/database.env" ]; then
+                        echo "✗ Error: database.env not found!"
+                        exit 1
+                    fi
+                    
+                    if [ ! -f "${PROD_DIR}/secrets/admin.env" ]; then
+                        echo "✗ Error: admin.env not found!"
+                        exit 1
+                    fi
+                    
+                    echo "✓ All required secrets files found"
+                    
+                    # Navigate to production directory
+                    cd ${PROD_DIR}
+                    
                     # Pull latest image
+                    echo "Pulling latest Docker image..."
                     docker pull ${DOCKER_IMAGE}:latest
-            
-                    # Start containers with latest image
+                    
+                    # Backup database before deployment
+                    echo "Creating database backup..."
+                    BACKUP_FILE="backups/backup_$(date +%Y%m%d_%H%M%S).sql"
+                    docker exec asseto-postgres-prod pg_dump -U asseto_user asseto_db > ${BACKUP_FILE} 2>/dev/null || echo "Note: Backup skipped (first deployment or database not ready)"
+                    
+                    # Stop only web container
+                    echo "Stopping web container..."
+                    docker stop asseto-web-prod 2>/dev/null || true
+                    docker rm asseto-web-prod 2>/dev/null || true
+                    
+                    # Start services
+                    echo "Starting services..."
                     docker-compose up -d
-            
-                    # Wait longer for application to start
+                    
+                    # Wait for application
                     echo "Waiting for application to start..."
                     sleep 30
-            
-                    # Check if containers are running
-                    docker ps | grep asseto-web
-                    docker ps | grep asseto-postgres
-            
-                    # Check application health with retries
+                    
+                    # Health check
+                    echo "Performing health check..."
                     for i in {1..10}; do
-                        if curl -f http://localhost:8002/ > /dev/null 2>&1; then
-                            echo "Application is healthy!"
+                        if curl -sf http://localhost:8002/admin/login/ > /dev/null 2>&1; then
+                            echo "✓ Application is healthy!"
+                            docker ps --filter "name=asseto-.*-prod" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+                            echo ""
+                            echo "Deployment successful!"
+                            echo "Application: http://localhost:8002"
+                            echo "Admin Panel: http://localhost:8002/admin/"
                             exit 0
                         fi
-                        echo "Attempt $i failed, waiting..."
+                        echo "Attempt $i/10..."
                         sleep 5
                     done
-            
-                    # If we get here, health check failed
-                    echo "Health check failed after 10 attempts"
-                    docker logs asseto-web --tail=100
+                    
+                    echo "✗ Health check failed!"
+                    docker logs asseto-web-prod --tail=100
                     exit 1
-                 '''
+                '''
             }
         }
         

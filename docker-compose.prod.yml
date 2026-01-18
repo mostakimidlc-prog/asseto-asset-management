@@ -3,44 +3,51 @@ version: '3.8'
 services:
   db:
     image: postgres:15-alpine
-    container_name: asseto-postgres-dev
+    container_name: asseto-postgres-prod
     volumes:
-      - postgres_data_dev:/var/lib/postgresql/data
+      - asseto_postgres_data:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: asseto_db
       POSTGRES_USER: asseto_user
       POSTGRES_PASSWORD: asseto_pass_123
     ports:
-      - "5434:5432"  # Different port for dev
+      - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U asseto_user -d asseto_db"]
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+    networks:
+      - asseto-network
 
   web:
-    build: .  # Build locally for dev
-    container_name: asseto-web-dev
-    command: /app/entrypoint.sh
-    volumes:
-      - ./:/app  # Mount code for development
-      - static_volume_dev:/app/staticfiles
+    image: mostakimidlc/asseto-asset-management:latest
+    container_name: asseto-web-prod
     ports:
-      - "8003:8000"  # Different port for dev
+      - "8002:8000"
     environment:
-      DEBUG: "1"
-      SECRET_KEY: "django-insecure-dev-key"
+      DEBUG: "0"
+      SECRET_KEY: "django-insecure-production-key-change-me"
       DATABASE_ENGINE: "django.db.backends.postgresql"
       DATABASE_NAME: "asseto_db"
       DATABASE_USER: "asseto_user"
       DATABASE_PASSWORD: "asseto_pass_123"
       DATABASE_HOST: "db"
       DATABASE_PORT: "5432"
-      ALLOWED_HOSTS: "localhost,127.0.0.1,asseto-web-dev"
+      ALLOWED_HOSTS: "localhost,127.0.0.1,asseto-web-prod,10.0.3.2"
     depends_on:
       db:
         condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - asseto-network
+
+networks:
+  asseto-network:
+    driver: bridge
 
 volumes:
-  postgres_data_dev:
-  static_volume_dev:
+  asseto_postgres_data:
+    external: true
+    name: asseto_postgres_data
