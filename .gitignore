@@ -6,3 +6,16 @@
 media
 db.sqlite3
 staticfiles
+# Production secrets
+/opt/asseto-production/secrets/
+*.env
+!.env.example
+
+# Backups
+/opt/asseto-production/backups/
+*.sql
+*.tar.gz
+
+# Logs
+/opt/asseto-production/logs/
+*.log
