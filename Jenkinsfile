@@ -3,7 +3,7 @@ pipeline {
     
     environment {
         DOCKER_IMAGE = "mostakimidlc/asseto-asset-management"
-        DOCKER_CREDENTIALS_ID = 'docker-hub-creds'
+        DOCKER_CREDENTIALS_ID = 'dockerhub-creds'
         GITHUB_CREDENTIALS_ID = 'github-creds'
         PROD_DIR = '/opt/asseto-production'
     }
